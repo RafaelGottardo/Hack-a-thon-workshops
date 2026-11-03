@@ -8,10 +8,15 @@ The workshops are designed for students to gain an understanding of the R progra
 # The Workshops 
 
 - Workshop 1: Introduction to R and Tidyverse
+- 
   October 20, 2026 (6:00 - 9:00PM): Arts 150
+  
 - Workshop 2: Introduction to Regression and Advanced Techniques in Regression
+- 
   November 3, 2026 (6:00 - 9:00PM): Arts 150
+  
 - Workshop 3: ggplot and other advanced topics
+- 
   November 17, 2026 (6:00 - 9:00): Location TBC
   
 # The Repository
