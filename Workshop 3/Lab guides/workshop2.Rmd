@@ -1,0 +1,269 @@
+---
+title: "Hack-a-thon Workshop 2 - Part 1"
+author: "Rafael Campos-Gottardo & Natalie Delmonte"
+date: "Novemeber 17, 2026"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Welcome to Workshop 3
+
+Now that we have learned some of the basics of R we can begin to explore more advanced data manipulation techniques. For the hack-a-thon it might be important to know how to combine two data sets and transform data between long and wide formats called pivoting. 
+
+## Learning Objectives 
+
+- Combine two datasets using cbind and rbind
+- Join two datasets using left/right join and the by arguement
+- Pivot wide data to long data using `pivot_longer()`
+- Pivot long data to wide using `pivot_wider()`
+- Review data cleaning
+
+## Getting started 
+
+To start we need to load the tidyverse again to have access to our pivot and joining functions and the pipe. 
+
+```{r}
+# install.packages("tidyverse") # Install the tidyverse if you have not already
+library(tidyverse)
+```
+
+To practice data manipulation are going to use the world cup dataset again and call it df.
+
+```{r}
+df <- read.csv("fifa_world_cup_history.csv")
+```
+
+We can view first 6 rows of the dataset using the head function.
+
+```{r}
+head(df)
+```
+
+We can also use the range function to see what years are covered by the dataset. 
+
+```{r}
+range(df$Year)
+```
+
+This function shows us the minimum and maximum values of the year variable. This tells us that the dataset covers 1930 to 2022. 
+
+For the sake of demonstration lets pretend that the 2026 World Cup has already happened and that Canada won! Let's create a new dataset that includes all the variables in our World Cup data set for 2026. 
+
+First we need to figure out what variables our data frame needs, we can use the names function to find all the variables in df. 
+
+```{r}
+names(df)
+```
+
+Now we can create a new data frame in R using the `data.frame()` function. In this function we need to specify a 1 or more values for each variable.
+
+```{r}
+world_cup2026 <- data.frame(Year = 2026,
+                            Host_Country = "North America",
+                            Winner = "Canada",
+                            Runner_Up = "Switzerland",
+                            Third_Place = "Panama",
+                            Fourth_Place = "Morocco",
+                            Total_Goals = 450,
+                            Matches_Played = 104,
+                            Teams = 48,
+                            Goals_Per_Match = 4.32
+                            )
+```
+
+Now we can combine this data set with our original data set using the the rbind() function. This function adds the rows from the right-side dataframe to the bottom of our original (left-side) data set. 
+
+*Remember we always have to asign our dataset to an object to save it.*
+
+```{r}
+df <- rbind(df, world_cup2026)
+```
+
+Now if we look at the end of our dataframe with the `tail()` function (the opposite of the head function) we can see that our new row has been added to our dataset. 
+
+```{r}
+tail(df)
+```
+
+Now lets say we want to add a new variable to our dataset. 
+
+We can use the `cbind()` function to add a new column to our dataset. Let's first use the `filter()` function to filter only select the 2010 World Cup to 2022 World Cup, to make our dataset smaller for this demonstration.
+
+```{r}
+df_small <- df %>% 
+  filter(Year %in% c(2010:2022))
+```
+
+Here we use `%in%` as a logical test instead of `==`. This tells R to return true of Year equals any value in the range from 2010 to 2022. This is the same as writing: `Year == 2010 | Year == 2011 | Year == 2012 | ...`.
+
+Now we can add a new variable to our dataset. We can add a best player variable. In this case the best player is determined by the winner of the Golden Ball. Notice that we use the `c()` function because we are adding multiple values to one variable.
+
+```{r}
+best_players = data.frame(Best_Player = c("Lionel Messi",
+                                          "Luka Modric",
+                                          "Lionel Messi",
+                                          "Diego Forlan"
+                                          ))
+```
+
+Now we can use the `cbind()` to add this column as a new variable in our dataset. 
+
+```{r}
+df_small <- cbind(df_small, best_players)
+```
+
+Now if we look at our data frame we can see that we have added a new variable.
+
+```{r}
+head(df_small)
+```
+
+What do we notice about how `rbind()` and `cbind()` work? 
+
+They just add rows or columns to the from another dataset if they have a matching number of rows/columns. But often two data sets only have some variables or the same variable has different names. 
+
+For this we can use the bind and join functions from `dplyr` (tidyverse). Lets start by creating a more accurate version of the 2026 World Cup dataset without any speculation. 
+
+```{r}
+Upcoming_world_cup <- data.frame(Year = 2026,
+                            Host_Country = "North America",
+                            Matches_Played = 104,
+                            Teams = 48
+                            )
+```
+
+If we tried to combine this dataset with our existing df using the rbind() function we would get an error.
+
+```{r eval=FALSE}
+df <- rbind(df, Upcoming_world_cup)
+```
+
+```
+Error in rbind(deparse.level, ...) :
+numbers of columns of arguments do not match
+```
+
+However, if we use the `bind_rows()` function it will only add rows to the variables with matching names and fill the remaining variables with NA. 
+
+```{r}
+df <- bind_rows(df, Upcoming_world_cup)
+```
+
+```{r}
+tail(df)
+```
+
+We can also specify `.id` as an arguement in the bind rows function to label each row with the data set it orginally came from. This is especially useful if you are combining multiple waves of public opinion data and want to label which year each data set came from. 
+
+```{r}
+df <- bind_rows(df, Upcoming_world_cup, .id = "id")
+```
+
+```{r}
+tail(df)
+```
+
+But maybe our upcoming world cup has different variable names than our orginal data frame. 
+
+```{r}
+Upcoming_world_cup <- data.frame(Tournament_Year = 2026,
+                            Host_Country = "North America",
+                            Matches_Played = 104,
+                            Teams = 48
+                            )
+```
+
+Notice how Year is now called Tournament_Year. If we were to try and use the `bind_rows()` we would get a new variable called Tournament Year that would only include 2026. To avoid this issue we can use the `rename()` function to name the Tournament_Year Varaible as Year.
+
+Lets use the pipe to do all this in one line of code. 
+
+```{r}
+df <- Upcoming_world_cup %>% 
+  rename(Year = Tournament_Year) %>% 
+  bind_rows(df, .)
+```
+
+Notice the dot in the bind rows function. The dot specifies where which argument I want the piped functions/data to corespond to, **but only if you use the tidyverse pipe.** Since I want the upcoming world cup to be at the end of the dataset, it needs to be the second argument in `bind_rows()`. Therefore, I use the dot to specify that it will be the second arguement instead of the first by default. 
+
+Now we can use our joining functions to merge two datasets by a specific variable.
+
+Lets reload our dataset to remove the new rows we added and create a new dataset of golden ball winners. 
+
+```{r}
+df <- read.csv("fifa_world_cup_history.csv")
+```
+
+```{r}
+best_players = data.frame(Tournament_Year = c(2010, 2014, 2018, 2022, 2026),
+                          Best_Player = c("Lionel Messi",
+                                          "Luka Modric",
+                                          "Lionel Messi",
+                                          "Diego Forlan",
+                                          "Jonathan Osorio"
+                                          ))
+```
+
+Now we can our new best players dataset with our main dataset. We will call the main dataset our left dataset and the best players dataset our right dataset. If we use the `left_join()` function we will keep every observation (row) from our left dataset. 
+
+```{r}
+df_left <- left_join(df, best_players, by = c("Year" = "Tournament_Year"))
+```
+
+```{r}
+tail(df_left)
+```
+
+Notice that we use the by arguement to tell R what variable(s) to match on. In this case we indicate that Year and Tournament_Year are the same variable. 
+
+Practice problem 1: What happens if you do a right join? A full join? (Remember you can use `?function` to access the help file or `??keyword` if you don't know the name of the function.)
+
+## Pivoting 
+
+Now that we have learned how to merge two datasets we can transfer them from long to wide format using the pivot functions. Pivot longer will create more rows and pivot wider will create more columns. However, both follow a similar syntax. 
+
+When pivoting longer we collapse multiple columns into two columns, a names column and a values column. The names column contains the names of all the variables we are pivoting and the values column contains all the data. 
+
+To pivot longer we need to select the columns we want to pivot using the cols arguement and provide a name for our names and values columns. 
+
+In this example we want to pivot the first, second, third, and fourth position teams into one finalist column and one place column. 
+
+```{r}
+df_long <- df %>% 
+  pivot_longer(cols = c(Winner, Runner_Up, Third_Place, Fourth_Place),
+               names_to = "Position",
+               values_to = "Finalists")
+```
+
+Here we can see that we have our new variables Position and Finalists. When we pivot we are not losing any data we are just changing how we how it is presented. 
+
+```{r}
+head(df_long)
+```
+
+**Practice Problem 2: Why might we want to pivot data to the wide format?**
+
+When making a dataset wider we use the pivot_wider function to reduce the number of rows and increase the number of columns. In this function we need to specify the `names_from` and `values_from` arguements to tell R what variable we want to use as our variable names and what varible we want to draw the values for the variables from. 
+
+Lets try pivoting our long dataframe back into the wide format. 
+
+```{r}
+df_wide <- df_long %>% 
+  pivot_wider(names_from = Position, values_from = Finalists)
+```
+
+When we look at our dataframe we can see that it looks identical to our original df.
+
+```{r}
+head(df_wide)
+```
+
+Practice Problems:
+
+3. Create mtcars_long the mpg, cyl, and disp from the mtcars dataset longer. 
+
+4. Create mtcars_wide where there is a column for each number of gears that contains the disp value. **Note this is not a perfect a use case of pivot_wider**
+
+
